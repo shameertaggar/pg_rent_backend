@@ -6,4 +6,5 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+console.log("DB Initialized:", db);
 module.exports = { db };

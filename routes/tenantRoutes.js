@@ -1,13 +1,13 @@
-// routes/tenantRoutes.js
-
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const tenantController = require('../controllers/tenantController');
+const authenticateJWT = require("../middlewares/authMiddleware");
+const tenantController = require("../controllers/tenantController");
 
-router.get('/', tenantController.getAllTenants);
-router.get('/:id', tenantController.getTenantById);
-router.post('/', tenantController.createTenant);
-router.put('/:id', tenantController.updateTenant);
-router.delete('/:id', tenantController.deleteTenant);
+// Apply middleware to tenant routes
+router.post("/", authenticateJWT, tenantController.createTenant);
+router.get("/", authenticateJWT, tenantController.getAllTenants);
+router.get("/:id", authenticateJWT, tenantController.getTenantById);
+router.put("/:id", authenticateJWT, tenantController.updateTenant);
+router.delete("/:id", authenticateJWT, tenantController.deleteTenant);
 
 module.exports = router;
