@@ -6,7 +6,8 @@ const Constants = {
     OWNER_COLLECTION: "owners",
     SECRET_KEY: process.env.JWT_SECRET,
     JWT_TOKEN_EXPIRY: "7d",
-    PROPERTY_ID: "propertyId"
+    PROPERTY_ID: "propertyId",
+    ROOM_COLLECTION: "rooms"
   };
   
   module.exports = { Constants };

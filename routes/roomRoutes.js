@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const authenticateJWT = require("../middlewares/authMiddleware");
 const roomController = require("../controllers/roomController");
 
-router.post("/", roomController.createRoom);
-router.get("/", roomController.getAllRooms);
-router.get("/:id", roomController.getRoomById);
-router.put("/:id", roomController.updateRoom);
-router.delete("/:id", roomController.deleteRoom);
+router.post("/", authenticateJWT, roomController.createRoom);
+//router.post("/bulk", authenticateJWT, roomController.createMultipleRooms);
+router.get("/", authenticateJWT, roomController.getAllRooms); // expects query param ?propertyId=xyz
+router.get("/:id", authenticateJWT, roomController.getRoomById);
+router.put("/:id", authenticateJWT, roomController.updateRoom);
+router.delete("/:id", authenticateJWT, roomController.deleteRoom);
 
 module.exports = router;

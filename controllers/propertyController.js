@@ -1,17 +1,31 @@
 const propertyModel = require("../models/propertyModel");
 const { validateCreateProperty, validateUpdateProperty } = require("../utils/validators/propertyValidator");
+const {createMultipleRooms} = require("../controllers/roomController");
+const roomModel = require("../models/roomModel");
 
 // CREATE property
 exports.createPROPERTY = async (req, res) => {
   const ownerId = req.user.ownerId;
   const payload = { ...req.body, ownerId }; // force ownerId from token
-
+  const {totalRooms} = req.body;
   const { error } = validateCreateProperty(payload);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
-    const id = await propertyModel.createProperty(payload);
-    res.status(201).json({ id });
+    const propertyId = await propertyModel.createProperty(payload);
+    if (totalRooms && Number.isInteger(totalRooms) && totalRooms > 0) {
+      const rooms = Array.from({ length: totalRooms }, (_, i) => ({
+        roomNumber: i+1,
+        beds: 0, // default value, or make it part of the request
+        availableBeds: 0,
+        propertyId,
+        ownerId,
+        created_at: new Date(),
+        updated_at: new Date()
+      }));
+      await roomModel.createMultipleRooms(rooms);
+    }
+    res.status(201).json({ propertyId, message: "Property created successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
