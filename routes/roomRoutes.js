@@ -10,4 +10,10 @@ router.get("/:id", authenticateJWT, roomController.getRoomById);
 router.put("/:id", authenticateJWT, roomController.updateRoom);
 router.delete("/:id", authenticateJWT, roomController.deleteRoom);
 
+// Bed management routes
+router.get("/:roomId/beds/available", authenticateJWT, roomController.getAvailableBeds);
+router.post("/beds/assign", authenticateJWT, roomController.assignBedToTenant);
+router.post("/beds/release", authenticateJWT, roomController.releaseBedFromTenant);
+router.put("/beds/rent", authenticateJWT, roomController.updateBedRent);
+
 module.exports = router;

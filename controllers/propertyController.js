@@ -16,8 +16,9 @@ exports.createPROPERTY = async (req, res) => {
     if (totalRooms && Number.isInteger(totalRooms) && totalRooms > 0) {
       const rooms = Array.from({ length: totalRooms }, (_, i) => ({
         roomNumber: i+1,
-        beds: 0, // default value, or make it part of the request
-        availableBeds: 0,
+        beds: 1, // Set default beds to 1 instead of 0
+        availableBeds: 1, // Set default available beds to 1 instead of 0
+        defaultRent: payload.rentPerBed, // Use property's rent per bed as default
         propertyId,
         ownerId,
         created_at: new Date(),

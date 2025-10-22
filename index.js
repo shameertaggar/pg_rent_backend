@@ -22,6 +22,7 @@ const rentRoutes = require("./routes/rentRoutes");
 const expenseRoutes = require("./routes/expenseRoutes");
 const foodRoutes = require("./routes/foodRegisterRoutes");
 const issueRoutes = require("./routes/issueRoutes");
+const profitLossRoutes = require("./routes/profitLossRoutes");
 
 // Apply routes
 app.use("/api/issues", issueRoutes);
@@ -32,7 +33,8 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use('/api/staff', staffRoutes);
 app.use("/api/property", propertyRoutes);
-app.use("/api/tenants", tenantRoutes); 
+app.use("/api/tenants", tenantRoutes);
+app.use("/api/profit-loss", profitLossRoutes); 
 
 // Test route
 app.get('/', (req, res) => {

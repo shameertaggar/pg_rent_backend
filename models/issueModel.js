@@ -1,4 +1,6 @@
 const { db } = require("../config/firebase");
+const { Constants: C } = require("../utils/constants");
+
 const ISSUE_COLLECTION = "Issues";
 
 const issueModel = {
@@ -16,20 +18,53 @@ const issueModel = {
     return { id: docRef.id };
   },
 
-  async getAllIssues(pg_id) {
-    let query = db.collection(ISSUE_COLLECTION);
-    if (pg_id) query = query.where("pg_id", "==", pg_id);
-    const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  async getAllIssues(ownerId) {
+    // Get all properties owned by this owner
+    const propertySnapshot = await db.collection(C.PROPERTY_COLLECTION)
+      .where(C.OWNER_ID, "==", ownerId)
+      .get();
+
+    const propertyIds = propertySnapshot.docs.map(doc => doc.id);
+
+    // Get issues associated with these property IDs
+    const issueSnapshot = await db.collection(ISSUE_COLLECTION)
+      .where(C.PROPERTY_ID, "in", propertyIds.length > 0 ? propertyIds : ["none"])
+      .get();
+
+    return issueSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   },
 
-  async getIssueById(id) {
+  async getIssueById(id, ownerId) {
     const doc = await db.collection(ISSUE_COLLECTION).doc(id).get();
     if (!doc.exists) throw new Error("Issue not found");
-    return { id: doc.id, ...doc.data() };
+    
+    const issueData = doc.data();
+    
+    // Check if the property belongs to the owner
+    const propertyDoc = await db.collection(C.PROPERTY_COLLECTION).doc(issueData.propertyId).get();
+    if (!propertyDoc.exists || propertyDoc.data().ownerId !== ownerId) {
+      throw new Error("Unauthorized");
+    }
+
+    return { id: doc.id, ...issueData };
   },
 
-  async updateIssue(id, data) {
+  async updateIssue(id, data, ownerId) {
+    const issueRef = db.collection(ISSUE_COLLECTION).doc(id);
+    const issueDoc = await issueRef.get();
+
+    if (!issueDoc.exists) {
+      throw new Error("Issue not found");
+    }
+
+    const issueData = issueDoc.data();
+    
+    // Check if the property belongs to the owner
+    const propertyDoc = await db.collection(C.PROPERTY_COLLECTION).doc(issueData.propertyId).get();
+    if (!propertyDoc.exists || propertyDoc.data().ownerId !== ownerId) {
+      throw new Error("Unauthorized");
+    }
+
     data.updated_at = new Date();
 
     // If marking as resolved, add resolved_at timestamp
@@ -37,12 +72,27 @@ const issueModel = {
       data.resolved_at = new Date();
     }
 
-    await db.collection(ISSUE_COLLECTION).doc(id).update(data);
+    await issueRef.update(data);
     return { message: "Issue updated successfully" };
   },
 
-  async deleteIssue(id) {
-    await db.collection(ISSUE_COLLECTION).doc(id).delete();
+  async deleteIssue(id, ownerId) {
+    const issueRef = db.collection(ISSUE_COLLECTION).doc(id);
+    const issueDoc = await issueRef.get();
+
+    if (!issueDoc.exists) {
+      throw new Error("Issue not found");
+    }
+
+    const issueData = issueDoc.data();
+    
+    // Check if the property belongs to the owner
+    const propertyDoc = await db.collection(C.PROPERTY_COLLECTION).doc(issueData.propertyId).get();
+    if (!propertyDoc.exists || propertyDoc.data().ownerId !== ownerId) {
+      throw new Error("Unauthorized");
+    }
+
+    await issueRef.delete();
     return { message: "Issue deleted successfully" };
   }
 };

@@ -3,6 +3,17 @@ const { Constants: C } = require("../utils/constants");
 
 // Create one room
 const createRoom = async (data) => {
+  // Initialize beds array with individual rent if not provided
+  if (data.beds && !data.bedsArray) {
+    data.bedsArray = Array.from({ length: data.beds }, (_, index) => ({
+      bedNumber: index + 1,
+      rent: data.defaultRent || 0,
+      isOccupied: false,
+      tenantId: null,
+      occupiedAt: null
+    }));
+  }
+  
   const docRef = await db.collection(C.ROOM_COLLECTION).add(data);
   return docRef.id;
 };
@@ -15,13 +26,23 @@ const getLastRoomNumber = async (propertyId) =>{
     
     if(snapshot.empty || !snapshot.docs[0]) return 0;
     const lastRoom = snapshot.docs[0].data();
-    console.log(lastRoom.roomNumber);
     return lastRoom.roomNumber;
 }
-// Create multiple rooms=
+// Create multiple rooms
 const createMultipleRooms = async (rooms) => {
   const batch = db.batch();
   rooms.forEach(room => {
+    // Initialize beds array with individual rent if not provided
+    if (room.beds && !room.bedsArray) {
+      room.bedsArray = Array.from({ length: room.beds }, (_, index) => ({
+        bedNumber: index + 1,
+        rent: room.defaultRent || 0,
+        isOccupied: false,
+        tenantId: null,
+        occupiedAt: null
+      }));
+    }
+    
     const docRef = db.collection(C.ROOM_COLLECTION).doc();
     batch.set(docRef, room);
   });
@@ -68,6 +89,103 @@ const deleteRoom = async (roomId, ownerId) => {
   await docRef.delete();
 };
 
+// Get available beds in a room
+const getAvailableBeds = async (roomId, ownerId) => {
+  const room = await getRoomById(roomId, ownerId);
+  if (!room) return null;
+  
+  return room.bedsArray.filter(bed => !bed.isOccupied);
+};
+
+// Assign bed to tenant
+const assignBedToTenant = async (roomId, bedNumber, tenantId, customRent, ownerId) => {
+  const roomRef = db.collection(C.ROOM_COLLECTION).doc(roomId);
+  const roomDoc = await roomRef.get();
+  
+  if (!roomDoc.exists || roomDoc.data().ownerId !== ownerId) {
+    throw new Error("Unauthorized or Room not found");
+  }
+  
+  const roomData = roomDoc.data();
+  const bedIndex = roomData.bedsArray.findIndex(bed => bed.bedNumber === bedNumber);
+  
+  if (bedIndex === -1) {
+    throw new Error("Bed not found");
+  }
+  
+  if (roomData.bedsArray[bedIndex].isOccupied) {
+    throw new Error("Bed is already occupied");
+  }
+  
+  // Update the specific bed
+  roomData.bedsArray[bedIndex] = {
+    ...roomData.bedsArray[bedIndex],
+    isOccupied: true,
+    tenantId: tenantId,
+    rent: customRent,
+    occupiedAt: new Date()
+  };
+  
+  // Update available beds count
+  roomData.availableBeds = roomData.bedsArray.filter(bed => !bed.isOccupied).length;
+  
+  await roomRef.update(roomData);
+  return roomData.bedsArray[bedIndex];
+};
+
+// Release bed from tenant
+const releaseBedFromTenant = async (roomId, bedNumber, ownerId) => {
+  const roomRef = db.collection(C.ROOM_COLLECTION).doc(roomId);
+  const roomDoc = await roomRef.get();
+  
+  if (!roomDoc.exists || roomDoc.data().ownerId !== ownerId) {
+    throw new Error("Unauthorized or Room not found");
+  }
+  
+  const roomData = roomDoc.data();
+  const bedIndex = roomData.bedsArray.findIndex(bed => bed.bedNumber === bedNumber);
+  
+  if (bedIndex === -1) {
+    throw new Error("Bed not found");
+  }
+  
+  // Release the bed
+  roomData.bedsArray[bedIndex] = {
+    ...roomData.bedsArray[bedIndex],
+    isOccupied: false,
+    tenantId: null,
+    occupiedAt: null
+  };
+  
+  // Update available beds count
+  roomData.availableBeds = roomData.bedsArray.filter(bed => !bed.isOccupied).length;
+  
+  await roomRef.update(roomData);
+  return roomData.bedsArray[bedIndex];
+};
+
+// Update bed rent
+const updateBedRent = async (roomId, bedNumber, newRent, ownerId) => {
+  const roomRef = db.collection(C.ROOM_COLLECTION).doc(roomId);
+  const roomDoc = await roomRef.get();
+  
+  if (!roomDoc.exists || roomDoc.data().ownerId !== ownerId) {
+    throw new Error("Unauthorized or Room not found");
+  }
+  
+  const roomData = roomDoc.data();
+  const bedIndex = roomData.bedsArray.findIndex(bed => bed.bedNumber === bedNumber);
+  
+  if (bedIndex === -1) {
+    throw new Error("Bed not found");
+  }
+  
+  roomData.bedsArray[bedIndex].rent = newRent;
+  
+  await roomRef.update(roomData);
+  return roomData.bedsArray[bedIndex];
+};
+
 module.exports = {
   createRoom,
   createMultipleRooms,
@@ -76,4 +194,8 @@ module.exports = {
   getRoomById,
   deleteRoom,
   getLastRoomNumber,
+  getAvailableBeds,
+  assignBedToTenant,
+  releaseBedFromTenant,
+  updateBedRent,
 };

@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { db } = require("../config/firebase");
 const { Constants : C } = require("../utils/constants");
+const tenantModel = require("../models/tenantModel");
+const { validateTenantAuth } = require("../utils/validators/tenantValidator");
 
 
 
@@ -68,5 +70,48 @@ exports.login = async (req, res) => {
     res.status(200).json({ token });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// Tenant Login
+exports.tenantLogin = async (req, res) => {
+  const { tenantCode, dob } = req.body;
+
+  try {
+    // Validate input
+    const { error } = validateTenantAuth({ tenantCode, dob });
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    // Convert DOB to string format for comparison
+    const dobString = dob instanceof Date ? dob.toISOString().split('T')[0] : dob;
+
+    // Authenticate tenant
+    const tenant = await tenantModel.authenticateTenant(tenantCode, dobString);
+
+    // Generate JWT token for tenant
+    const token = jwt.sign(
+      { 
+        tenantId: tenant.id, 
+        tenantCode: tenant.tenantCode,
+        name: tenant.name,
+        email: tenant.email,
+        userType: 'tenant'
+      },
+      C.SECRET_KEY,
+      { expiresIn: C.JWT_TOKEN_EXPIRY }
+    );
+
+    res.status(200).json({ 
+      token,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        email: tenant.email,
+        tenantCode: tenant.tenantCode,
+        propertyName: tenant.propertyName
+      }
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };

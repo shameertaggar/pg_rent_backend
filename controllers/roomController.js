@@ -31,23 +31,6 @@ exports.createRoom = async (req, res) => {
   }
 };
 
-// Create multiple rooms
-// exports.createMultipleRooms = async (req, res) => {
-//   try {
-//     const ownerId = req.user.ownerId;
-//     const rooms = req.body.map(room => ({
-//       ...room,
-//       ownerId,
-//       created_at: new Date(),
-//       updated_at: new Date()
-//     }));
-
-//     await roomModel.createMultipleRooms(rooms);
-//     res.status(201).json({ message: "Rooms created successfully" });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 // Update room (e.g. number of beds)
 exports.updateRoom = async (req, res) => {
@@ -59,7 +42,7 @@ exports.updateRoom = async (req, res) => {
       updated_at: new Date()
     };
 
-    const {error} = roomValidator.validateUpdateRoom(roomData);
+    const {error} = roomValidator.validateUpdateRoom(updateData);
     if(error) return res.status(400).json({error: error.details[0].message});
     await roomModel.updateRoom(roomId, updateData, ownerId);
     res.status(200).json({ message: "Room updated successfully" });
@@ -100,5 +83,77 @@ exports.deleteRoom = async (req, res) => {
     res.status(200).json({ message: "Room deleted successfully" });
   } catch (err) {
     res.status(403).json({ error: err.message });
+  }
+};
+
+// Get available beds in a room
+exports.getAvailableBeds = async (req, res) => {
+  try {
+    const ownerId = req.user.ownerId;
+    const roomId = req.params.roomId;
+    const availableBeds = await roomModel.getAvailableBeds(roomId, ownerId);
+    
+    if (availableBeds === null) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+    
+    res.status(200).json(availableBeds);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Assign bed to tenant
+exports.assignBedToTenant = async (req, res) => {
+  try {
+    const ownerId = req.user.ownerId;
+    const { roomId, bedNumber, tenantId, customRent } = req.body;
+    
+    if (!roomId || !bedNumber || !tenantId || !customRent) {
+      return res.status(400).json({ error: "Missing required fields: roomId, bedNumber, tenantId, customRent" });
+    }
+    
+    const assignedBed = await roomModel.assignBedToTenant(roomId, bedNumber, tenantId, customRent, ownerId);
+    res.status(200).json({ message: "Bed assigned successfully", bed: assignedBed });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Release bed from tenant
+exports.releaseBedFromTenant = async (req, res) => {
+  try {
+    const ownerId = req.user.ownerId;
+    const { roomId, bedNumber } = req.body;
+    
+    if (!roomId || !bedNumber) {
+      return res.status(400).json({ error: "Missing required fields: roomId, bedNumber" });
+    }
+    
+    const releasedBed = await roomModel.releaseBedFromTenant(roomId, bedNumber, ownerId);
+    res.status(200).json({ message: "Bed released successfully", bed: releasedBed });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Update bed rent
+exports.updateBedRent = async (req, res) => {
+  try {
+    const ownerId = req.user.ownerId;
+    const { roomId, bedNumber, newRent } = req.body;
+    
+    if (!roomId || !bedNumber || !newRent) {
+      return res.status(400).json({ error: "Missing required fields: roomId, bedNumber, newRent" });
+    }
+    
+    if (newRent < 0) {
+      return res.status(400).json({ error: "Rent cannot be negative" });
+    }
+    
+    const updatedBed = await roomModel.updateBedRent(roomId, bedNumber, newRent, ownerId);
+    res.status(200).json({ message: "Bed rent updated successfully", bed: updatedBed });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };
