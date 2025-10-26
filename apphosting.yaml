@@ -1,12 +1,19 @@
+# apphosting.yaml
+build:
+  command: "npm install"
+  outputDirectory: "dist"
+
 run:
   command: "npm start"
   port: 8080
 
 env:
-  JWT_SECRET: { secret: "JWT_SECRET" }
-  SERVICE_ACCOUNT_KEY: { secret: "SERVICE_ACCOUNT_KEY" }
+  - name: JWT_SECRET
+    secret: "JWT_SECRET"  # must match the secret name in Firebase
+  - name: SERVICE_ACCOUNT_KEY
+    secret: "SERVICE_ACCOUNT_KEY"
 
 runConfig:
-  minInstances: 1
-  maxInstances: 10
-  concurrency: 10
+  minInstances: 1        # minimum instances to handle traffic
+  maxInstances: 10       # scale up to this many instances
+  concurrency: 10        # requests handled per instance
