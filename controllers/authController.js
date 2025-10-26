@@ -12,6 +12,7 @@ exports.signup = async (req, res) => {
   const { email, password, name } = req.body;
 
   try {
+    console.log('🔍 Checking for existing user with email:', email);
     const existingUserSnapshot = await db.collection(C.OWNER_COLLECTION)
       .where(C.EMAIL, "==", email)
       .get();
@@ -20,6 +21,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
+    console.log('✅ No existing user found, creating new user');
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const docRef = await db.collection(C.OWNER_COLLECTION).add({
@@ -27,6 +29,8 @@ exports.signup = async (req, res) => {
       password: hashedPassword,
       name,
     });
+
+    console.log('✅ User created with ID:', docRef.id);
 
     const token = jwt.sign(
       { ownerId: docRef.id, name, email },
@@ -36,7 +40,10 @@ exports.signup = async (req, res) => {
 
     res.status(201).json({ token });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Signup error:', err);
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    res.status(500).json({ error: err.message, details: err.code });
   }
 };
 
@@ -45,11 +52,15 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    console.log('🔍 Attempting login for email:', email);
     const snapshot = await db.collection(C.OWNER_COLLECTION)
       .where(C.EMAIL, "==", email)
       .get();
 
+    console.log('📊 Found documents:', snapshot.size);
+
     if (snapshot.empty) {
+      console.log('❌ No user found with email:', email);
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
@@ -58,9 +69,11 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, userData.password);
     if (!isMatch) {
+      console.log('❌ Password mismatch');
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
+    console.log('✅ Login successful for user:', userDoc.id);
     const token = jwt.sign(
       { ownerId: userDoc.id, name: userData.name, email },
       C.SECRET_KEY,
@@ -69,7 +82,10 @@ exports.login = async (req, res) => {
 
     res.status(200).json({ token });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Login error:', err);
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    res.status(500).json({ error: err.message, details: err.code });
   }
 };
 

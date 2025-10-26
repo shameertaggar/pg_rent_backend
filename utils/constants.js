@@ -7,7 +7,11 @@ const Constants = {
     SECRET_KEY: process.env.JWT_SECRET,
     JWT_TOKEN_EXPIRY: "7d",
     PROPERTY_ID: "propertyId",
-    ROOM_COLLECTION: "rooms"
+    ROOM_COLLECTION: "rooms",
+    RENT_COLLECTION: "Rent",
+    EXPENSE_COLLECTION: "Expenses",
+    BOOKING_COLLECTION: "Bookings",
+    ISSUE_COLLECTION: "Issues"
   };
   
   module.exports = { Constants };
