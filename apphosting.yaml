@@ -1,0 +1,12 @@
+run:
+  command: "npm start"
+  port: 8080
+
+env:
+  JWT_SECRET: { secret: "JWT_SECRET" }
+  SERVICE_ACCOUNT_KEY: { secret: "SERVICE_ACCOUNT_KEY" }
+
+runConfig:
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 10
