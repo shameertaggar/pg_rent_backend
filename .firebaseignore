@@ -1,7 +1,6 @@
 node_modules
-**/platform/**
-**/platform*
-**/env/**
-dist
 .env
 firebase-debug.log
+platform/
+**/platform/**
+dist
