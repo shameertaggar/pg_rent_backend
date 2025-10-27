@@ -1,0 +1,7 @@
+# Ignore node_modules and platform dirs for Cloud Build
+node_modules/
+**/platform/**
+.env
+firebase-debug.log
+.git
+dist/
