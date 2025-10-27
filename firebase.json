@@ -1,0 +1,8 @@
+{
+  "hosting": {
+    "source": "app"
+  },
+  "apphosting": {
+    "site": "main"
+  }
+}
