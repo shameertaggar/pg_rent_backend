@@ -11,6 +11,7 @@ try {
   // Get Firestore instance
   const db = admin.firestore();
   
+  
   const settings = {
     databaseId: "pgmanager138",
 };
