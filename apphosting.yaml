@@ -1,4 +1,5 @@
 # apphosting.yaml
+runtime: nodejs22
 build:
   command: "npm install"
   outputDirectory: "dist"
@@ -16,4 +17,4 @@ env:
 runConfig:
   minInstances: 1        # minimum instances to handle traffic
   maxInstances: 10       # scale up to this many instances
-  concurrency: 10        # requests handled per instance
+  concurrency: 100        # requests handled per instance
