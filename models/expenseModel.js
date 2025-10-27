@@ -14,6 +14,7 @@ const ExpenseModel = {
     return docRef.id;
   },
 
+  
   async getAllExpenses(ownerId) {
     // Get all properties owned by this owner
     const propertySnapshot = await db.collection(C.PROPERTY_COLLECTION)

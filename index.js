@@ -11,7 +11,6 @@ app.use(express.json());
 // Auth route (no JWT needed)
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes); // ✅ Always keep auth route first
-
 // Protected Routes (JWT will be needed inside route files)
 const propertyRoutes = require("./routes/propertyRoutes");
 const tenantRoutes = require('./routes/tenantRoutes');
