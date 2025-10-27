@@ -1,5 +1,5 @@
 # Use the official Node.js 20 image
-FROM registry.access.redhat.com/ubi8/nodejs-16:latest
+FROM node:20.18.0-alpine
 
 # Set working directory
 WORKDIR /usr/src/app
