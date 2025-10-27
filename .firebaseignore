@@ -1,0 +1,5 @@
+node_modules
+platform
+dist
+.env
+firebase-debug.log
