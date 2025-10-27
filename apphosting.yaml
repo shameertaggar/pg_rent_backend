@@ -1,20 +1,16 @@
-# apphosting.yaml
-runtime: nodejs22
+runConfig:
+  runtime: nodejs20
+  entrypoint: npm start
+  minInstances: 1
+  maxInstances: 10
+  concurrency: 100
+
 build:
   command: "npm install"
-  outputDirectory: "dist"
-
-run:
-  command: "npm start"
-  port: 8080
+  outputDirectory: "."
 
 env:
   - name: JWT_SECRET
-    secret: "JWT_SECRET"  # must match the secret name in Firebase
+    secret: "JWT_SECRET"
   - name: SERVICE_ACCOUNT_KEY
     secret: "SERVICE_ACCOUNT_KEY"
-
-runConfig:
-  minInstances: 1        # minimum instances to handle traffic
-  maxInstances: 10       # scale up to this many instances
-  concurrency: 100        # requests handled per instance
