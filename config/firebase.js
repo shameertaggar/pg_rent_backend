@@ -12,7 +12,6 @@ try {
   const db = admin.firestore();
   
   const settings = {
-    // Replace 'pgmanager138' with your database ID
     databaseId: "pgmanager138",
 };
 db.settings(settings);
