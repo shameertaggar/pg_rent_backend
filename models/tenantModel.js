@@ -11,6 +11,7 @@ const generateTenantCode = () => {
   return result;
 };
 
+
 // CREATE
 const createTenant = async (data) => {
   // Generate unique tenant code
