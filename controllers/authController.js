@@ -1,19 +1,19 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { db } = require("../config/firebase");
-const { Constants : C } = require("../utils/constants");
+const { Constants: C } = require("../utils/constants");
 const tenantModel = require("../models/tenantModel");
 const { validateTenantAuth } = require("../utils/validators/tenantValidator");
-
-
 
 // Signup
 exports.signup = async (req, res) => {
   const { email, password, name } = req.body;
 
   try {
-    console.log('🔍 Checking for existing user with email:', email);
-    const existingUserSnapshot = await db.collection(C.OWNER_COLLECTION)
+    console.log("🔑 JWT Secret Key:", C.SECRET_KEY ? "Present" : "Missing");
+    console.log("🔍 Checking for existing user with email:", email);
+    const existingUserSnapshot = await db
+      .collection(C.OWNER_COLLECTION)
       .where(C.EMAIL, "==", email)
       .get();
 
@@ -21,7 +21,7 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ error: "Email already exists" });
     }
 
-    console.log('✅ No existing user found, creating new user');
+    console.log("✅ No existing user found, creating new user");
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const docRef = await db.collection(C.OWNER_COLLECTION).add({
@@ -30,19 +30,17 @@ exports.signup = async (req, res) => {
       name,
     });
 
-    console.log('✅ User created with ID:', docRef.id);
+    console.log("✅ User created with ID:", docRef.id);
 
-    const token = jwt.sign(
-      { ownerId: docRef.id, name, email },
-      C.SECRET_KEY,
-      { expiresIn: C.JWT_TOKEN_EXPIRY }
-    );
+    const token = jwt.sign({ ownerId: docRef.id, name, email }, C.SECRET_KEY, {
+      expiresIn: C.JWT_TOKEN_EXPIRY,
+    });
 
     res.status(201).json({ token });
   } catch (err) {
-    console.error('❌ Signup error:', err);
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
+    console.error("❌ Signup error:", err);
+    console.error("Error code:", err.code);
+    console.error("Error message:", err.message);
     res.status(500).json({ error: err.message, details: err.code });
   }
 };
@@ -52,15 +50,17 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    console.log('🔍 Attempting login for email:', email);
-    const snapshot = await db.collection(C.OWNER_COLLECTION)
+    console.log("🔑 JWT Secret Key:", C.SECRET_KEY ? "Present" : "Missing");
+    console.log("🔍 Attempting login for email:", email);
+    const snapshot = await db
+      .collection(C.OWNER_COLLECTION)
       .where(C.EMAIL, "==", email)
       .get();
 
-    console.log('📊 Found documents:', snapshot.size);
+    console.log("📊 Found documents:", snapshot.size);
 
     if (snapshot.empty) {
-      console.log('❌ No user found with email:', email);
+      console.log("❌ No user found with email:", email);
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
@@ -69,22 +69,22 @@ exports.login = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, userData.password);
     if (!isMatch) {
-      console.log('❌ Password mismatch');
+      console.log("❌ Password mismatch");
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    console.log('✅ Login successful for user:', userDoc.id);
+    console.log("✅ Login successful for user:", userDoc.id);
     const token = jwt.sign(
       { ownerId: userDoc.id, name: userData.name, email },
       C.SECRET_KEY,
-      { expiresIn: C.JWT_TOKEN_EXPIRY }
+      { expiresIn: C.JWT_TOKEN_EXPIRY },
     );
 
     res.status(200).json({ token });
   } catch (err) {
-    console.error('❌ Login error:', err);
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
+    console.error("❌ Login error:", err);
+    console.error("Error code:", err.code);
+    console.error("Error message:", err.message);
     res.status(500).json({ error: err.message, details: err.code });
   }
 };
@@ -99,33 +99,34 @@ exports.tenantLogin = async (req, res) => {
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     // Convert DOB to string format for comparison
-    const dobString = dob instanceof Date ? dob.toISOString().split('T')[0] : dob;
+    const dobString =
+      dob instanceof Date ? dob.toISOString().split("T")[0] : dob;
 
     // Authenticate tenant
     const tenant = await tenantModel.authenticateTenant(tenantCode, dobString);
 
     // Generate JWT token for tenant
     const token = jwt.sign(
-      { 
-        tenantId: tenant.id, 
+      {
+        tenantId: tenant.id,
         tenantCode: tenant.tenantCode,
         name: tenant.name,
         email: tenant.email,
-        userType: 'tenant'
+        userType: "tenant",
       },
       C.SECRET_KEY,
-      { expiresIn: C.JWT_TOKEN_EXPIRY }
+      { expiresIn: C.JWT_TOKEN_EXPIRY },
     );
 
-    res.status(200).json({ 
+    res.status(200).json({
       token,
       tenant: {
         id: tenant.id,
         name: tenant.name,
         email: tenant.email,
         tenantCode: tenant.tenantCode,
-        propertyName: tenant.propertyName
-      }
+        propertyName: tenant.propertyName,
+      },
     });
   } catch (err) {
     res.status(400).json({ error: err.message });
