@@ -1,32 +1,39 @@
 const propertyModel = require("../models/propertyModel");
-const { validateCreateProperty, validateUpdateProperty } = require("../utils/validators/propertyValidator");
-const {createMultipleRooms} = require("../controllers/roomController");
+const {
+  validateCreateProperty,
+  validateUpdateProperty,
+} = require("../utils/validators/propertyValidator");
+const { createMultipleRooms } = require("../controllers/roomController");
 const roomModel = require("../models/roomModel");
 
 // CREATE property
 exports.createPROPERTY = async (req, res) => {
   const ownerId = req.user.ownerId;
   const payload = { ...req.body, ownerId }; // force ownerId from token
-  const {totalRooms} = req.body;
+  const { totalRooms, bedsPerRoom = 2 } = req.body; // Default to 2 beds per room if not specified
   const { error } = validateCreateProperty(payload);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
     const propertyId = await propertyModel.createProperty(payload);
     if (totalRooms && Number.isInteger(totalRooms) && totalRooms > 0) {
+      const bedsCount =
+        Number.isInteger(bedsPerRoom) && bedsPerRoom > 0 ? bedsPerRoom : 2;
       const rooms = Array.from({ length: totalRooms }, (_, i) => ({
-        roomNumber: i+1,
-        beds: 1, // Set default beds to 1 instead of 0
-        availableBeds: 1, // Set default available beds to 1 instead of 0
+        roomNumber: i + 1,
+        beds: bedsCount, // Use specified beds per room
+        availableBeds: bedsCount, // All beds are initially available
         defaultRent: payload.rentPerBed, // Use property's rent per bed as default
         propertyId,
         ownerId,
         created_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       }));
       await roomModel.createMultipleRooms(rooms);
     }
-    res.status(201).json({ propertyId, message: "Property created successfully" });
+    res
+      .status(201)
+      .json({ propertyId, message: "Property created successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -50,7 +57,8 @@ exports.getPROPERTYById = async (req, res) => {
 
   try {
     const data = await propertyModel.getPropertyById(req.params.id, ownerId);
-    if (!data) return res.status(404).json({ error: "Not found or unauthorized" });
+    if (!data)
+      return res.status(404).json({ error: "Not found or unauthorized" });
     res.status(200).json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });

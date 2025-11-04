@@ -1,37 +1,43 @@
 const RentModel = require("../models/rentModel");
 const roomModel = require("../models/roomModel");
-const { validateCreateRent, validateUpdateRent } = require("../utils/validators/rentValidator");
+const {
+  validateCreateRent,
+  validateUpdateRent,
+} = require("../utils/validators/rentValidator");
 
 exports.createRent = async (req, res) => {
   try {
     const ownerId = req.user.ownerId;
     const { roomId, bedNumber, tenantId, ...rentData } = req.body;
-    
+
     // If bed-specific rent is provided, get the actual rent from the bed
     if (roomId && bedNumber) {
       try {
         const room = await roomModel.getRoomById(roomId, ownerId);
         if (room && room.bedsArray) {
-          const bed = room.bedsArray.find(b => b.bedNumber === bedNumber);
+          const bed = room.bedsArray.find((b) => b.bedNumber === bedNumber);
           if (bed) {
-            rentData.rent_amount = bed.rent;
+            rentData.amount_paid = bed.rent;
             rentData.bedNumber = bedNumber;
             rentData.roomId = roomId;
           }
         }
       } catch (bedError) {
-        return res.status(400).json({ error: `Error fetching bed rent: ${bedError.message}` });
+        return res
+          .status(400)
+          .json({ error: `Error fetching bed rent: ${bedError.message}` });
       }
     }
-    
+
     const rentWithOwnerData = {
       ...rentData,
-      ownerId
+      tenantId,
+      ownerId,
     };
-    
+
     const { error } = validateCreateRent(rentWithOwnerData);
     if (error) return res.status(400).json({ error: error.details[0].message });
-    
+
     const rentId = await RentModel.createRent(rentWithOwnerData);
     res.status(201).json({ id: rentId });
   } catch (error) {
@@ -65,12 +71,12 @@ exports.updateRent = async (req, res) => {
     const ownerId = req.user.ownerId;
     const updateData = {
       ...req.body,
-      ownerId
+      ownerId,
     };
-    
+
     const { error } = validateUpdateRent(updateData);
     if (error) return res.status(400).json({ error: error.details[0].message });
-    
+
     await RentModel.updateRent(req.params.id, req.body, ownerId);
     res.status(200).json({ message: "Rent record updated successfully" });
   } catch (error) {
