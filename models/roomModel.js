@@ -126,10 +126,28 @@ const assignBedToTenant = async (roomId, bedNumber, tenantId, customRent, ownerI
     occupiedAt: new Date()
   };
   
-  // Update available beds count
+  // Update available beds count for room
   roomData.availableBeds = roomData.bedsArray.filter(bed => !bed.isOccupied).length;
   
   await roomRef.update(roomData);
+  
+  // Decrease property's availableBeds
+  if (roomData.propertyId) {
+    const propertyRef = db.collection(C.PROPERTY_COLLECTION).doc(roomData.propertyId);
+    const propertyDoc = await propertyRef.get();
+    
+    if (propertyDoc.exists) {
+      const propertyData = propertyDoc.data();
+      const currentAvailableBeds = propertyData.availableBeds || 0;
+      const newAvailableBeds = Math.max(0, currentAvailableBeds - 1);
+      
+      await propertyRef.update({
+        availableBeds: newAvailableBeds,
+        updated_at: new Date()
+      });
+    }
+  }
+  
   return roomData.bedsArray[bedIndex];
 };
 
@@ -149,6 +167,9 @@ const releaseBedFromTenant = async (roomId, bedNumber, ownerId) => {
     throw new Error("Bed not found");
   }
   
+  // Only increase property's availableBeds if the bed was actually occupied
+  const wasOccupied = roomData.bedsArray[bedIndex].isOccupied;
+  
   // Release the bed
   roomData.bedsArray[bedIndex] = {
     ...roomData.bedsArray[bedIndex],
@@ -157,10 +178,29 @@ const releaseBedFromTenant = async (roomId, bedNumber, ownerId) => {
     occupiedAt: null
   };
   
-  // Update available beds count
+  // Update available beds count for room
   roomData.availableBeds = roomData.bedsArray.filter(bed => !bed.isOccupied).length;
   
   await roomRef.update(roomData);
+  
+  // Increase property's availableBeds only if bed was previously occupied
+  if (wasOccupied && roomData.propertyId) {
+    const propertyRef = db.collection(C.PROPERTY_COLLECTION).doc(roomData.propertyId);
+    const propertyDoc = await propertyRef.get();
+    
+    if (propertyDoc.exists) {
+      const propertyData = propertyDoc.data();
+      const currentAvailableBeds = propertyData.availableBeds || 0;
+      const totalBeds = propertyData.totalBeds || 0;
+      const newAvailableBeds = Math.min(totalBeds, currentAvailableBeds + 1);
+      
+      await propertyRef.update({
+        availableBeds: newAvailableBeds,
+        updated_at: new Date()
+      });
+    }
+  }
+  
   return roomData.bedsArray[bedIndex];
 };
 

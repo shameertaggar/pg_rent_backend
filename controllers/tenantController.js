@@ -198,6 +198,27 @@ exports.deleteTenant = async (req, res) => {
   const ownerId = req.user.ownerId;
 
   try {
+    // Get tenant data first to check if they have a bed assigned
+    const tenantData = await tenantModel.getTenantById(req.params.id, ownerId);
+    
+    if (!tenantData) {
+      return res.status(404).json({ error: "Tenant not found or unauthorized" });
+    }
+
+    // If tenant has a bed assigned, release it before deletion
+    if (tenantData.roomId && tenantData.bedNumber) {
+      try {
+        await roomModel.releaseBedFromTenant(
+          tenantData.roomId,
+          tenantData.bedNumber,
+          ownerId
+        );
+      } catch (bedError) {
+        console.error("Error releasing bed during tenant deletion:", bedError.message);
+        // Continue with tenant deletion even if bed release fails
+      }
+    }
+
     await tenantModel.deleteTenant(req.params.id, ownerId);
     res.status(200).json({ message: "Tenant deleted successfully" });
   } catch (err) {

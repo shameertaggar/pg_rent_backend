@@ -11,7 +11,14 @@ exports.createPROPERTY = async (req, res) => {
   const ownerId = req.user.ownerId;
   const payload = { ...req.body, ownerId }; // force ownerId from token
   const { totalRooms, totalBeds } = req.body;
-  payload.availableBeds = req.body.totalBeds;
+  
+  // Set availableBeds to totalBeds when property is created
+  if (totalBeds && Number.isInteger(totalBeds) && totalBeds > 0) {
+    payload.availableBeds = totalBeds;
+  } else if (payload.totalBeds) {
+    payload.availableBeds = payload.totalBeds;
+  }
+  
   const { error } = validateCreateProperty(payload);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
