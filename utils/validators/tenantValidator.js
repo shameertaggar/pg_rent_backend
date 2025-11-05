@@ -16,6 +16,7 @@ const createTenantSchema = Joi.object({
   propertyId: Joi.string().required(),
   propertyName: Joi.string().required(),
   ownerId: Joi.string().required(),
+  status: Joi.string().required(),
   // Bed assignment fields (optional)
   roomId: Joi.string().allow(''),
   bedNumber: Joi.number().integer().positive().allow(null),
