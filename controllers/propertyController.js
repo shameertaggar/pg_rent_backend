@@ -10,19 +10,28 @@ const roomModel = require("../models/roomModel");
 exports.createPROPERTY = async (req, res) => {
   const ownerId = req.user.ownerId;
   const payload = { ...req.body, ownerId }; // force ownerId from token
-  const { totalRooms, bedsPerRoom = 2 } = req.body; // Default to 2 beds per room if not specified
+  const { totalRooms, totalBeds } = req.body;
   const { error } = validateCreateProperty(payload);
   if (error) return res.status(400).json({ error: error.details[0].message });
 
   try {
     const propertyId = await propertyModel.createProperty(payload);
-    if (totalRooms && Number.isInteger(totalRooms) && totalRooms > 0) {
-      const bedsCount =
-        Number.isInteger(bedsPerRoom) && bedsPerRoom > 0 ? bedsPerRoom : 2;
+    if (
+      totalRooms &&
+      Number.isInteger(totalRooms) &&
+      totalRooms > 0 &&
+      totalBeds &&
+      Number.isInteger(totalBeds) &&
+      totalBeds > 0
+    ) {
+      // Calculate beds per room (distribute total beds across rooms)
+      const bedsPerRoom = Math.floor(totalBeds / totalRooms);
+      const extraBeds = totalBeds % totalRooms;
+
       const rooms = Array.from({ length: totalRooms }, (_, i) => ({
         roomNumber: i + 1,
-        beds: bedsCount, // Use specified beds per room
-        availableBeds: bedsCount, // All beds are initially available
+        beds: bedsPerRoom + (i < extraBeds ? 1 : 0), // Distribute extra beds to first few rooms
+        availableBeds: bedsPerRoom + (i < extraBeds ? 1 : 0), // All beds are initially available
         defaultRent: payload.rentPerBed, // Use property's rent per bed as default
         propertyId,
         ownerId,
